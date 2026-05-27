@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UTMリンク生成ツール — Kurand</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif; background: #f5f4f0; color: #1a1a18; min-height: 100vh; padding: 2rem 1rem; }
+  .container { max-width: 680px; margin: 0 auto; }
+  header { margin-bottom: 2rem; }
+  header h1 { font-size: 18px; font-weight: 500; color: #1a1a18; margin-bottom: 4px; }
+  header p { font-size: 13px; color: #888780; }
+  .card { background: #fff; border-radius: 12px; border: 0.5px solid rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 1rem; }
+  label { font-size: 13px; color: #5f5e5a; display: block; margin-bottom: 5px; }
+  .sublabel { font-size: 12px; color: #aaa; margin-bottom: 7px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1.25rem; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 1.25rem; }
+  input#authorName.empty-warn { border-color: #e57373; }
+  .toggle-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tog-btn { height: 34px; padding: 0 14px; border: 0.5px solid rgba(0,0,0,0.2); border-radius: 8px; background: none; cursor: pointer; font-size: 13px; font-family: inherit; color: #5f5e5a; transition: all 0.15s; white-space: nowrap; }
+  .tog-btn.active { background: #1a1a18; color: #fff; border-color: #1a1a18; }
+  .tog-btn:not(.active):hover { background: #f5f4f0; }
+  input[type=date], input[type=text] { width: 100%; height: 38px; border: 0.5px solid rgba(0,0,0,0.2); border-radius: 8px; padding: 0 12px; font-size: 14px; font-family: inherit; color: #1a1a18; background: #fff; outline: none; transition: border-color 0.15s; }
+  input:focus { border-color: rgba(0,0,0,0.4); }
+  .suffix-section { margin-top: 1rem; }
+  .preview-box { background: #f5f4f0; border-radius: 8px; border: 0.5px solid rgba(0,0,0,0.1); padding: 10px 14px; font-size: 12px; font-family: 'Menlo', 'Monaco', 'Courier New', monospace; color: #888780; line-height: 2; word-break: break-all; margin-top: 1rem; }
+  .preview-box .pv { color: #1a1a18; }
+  .section-label { font-size: 13px; color: #5f5e5a; margin-bottom: 10px; }
+  .url-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .url-row input { flex: 1; }
+  .del-btn { width: 38px; height: 38px; flex-shrink: 0; background: none; border: 0.5px solid rgba(0,0,0,0.15); border-radius: 8px; cursor: pointer; color: #888780; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: background 0.1s; }
+  .del-btn:hover { background: #f5f4f0; }
+  .add-btn { font-size: 13px; color: #888780; background: none; border: 0.5px dashed rgba(0,0,0,0.2); border-radius: 8px; padding: 7px 16px; cursor: pointer; margin-top: 4px; font-family: inherit; transition: background 0.1s; }
+  .add-btn:hover { background: #f5f4f0; }
+  .gen-btn { width: 100%; padding: 12px; font-size: 15px; font-weight: 500; background: #1a1a18; color: #fff; border: none; border-radius: 10px; cursor: pointer; font-family: inherit; transition: opacity 0.15s, transform 0.1s; margin-top: 0.5rem; }
+  .gen-btn:hover { opacity: 0.85; }
+  .gen-btn:active { transform: scale(0.98); }
+  .gen-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .divider { border: none; border-top: 0.5px solid rgba(0,0,0,0.08); margin: 1.5rem 0; }
+  .result-area { display: none; }
+  .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .result-header span { font-size: 13px; color: #888780; }
+  .copy-all-btn { font-size: 13px; background: none; border: 0.5px solid rgba(0,0,0,0.2); border-radius: 8px; padding: 6px 14px; cursor: pointer; color: #1a1a18; font-family: inherit; transition: background 0.1s; }
+  .copy-all-btn:hover { background: #f5f4f0; }
+  .result-list { display: flex; flex-direction: column; gap: 8px; }
+  .result-item { background: #f5f4f0; border-radius: 10px; border: 0.5px solid rgba(0,0,0,0.08); cursor: pointer; overflow: hidden; transition: border-color 0.15s; }
+  .result-item:hover { border-color: rgba(0,0,0,0.2); }
+  .result-url { padding: 11px 14px; font-size: 12px; font-family: 'Menlo', 'Monaco', 'Courier New', monospace; color: #1a1a18; word-break: break-all; line-height: 1.7; }
+  .result-meta { display: flex; justify-content: space-between; align-items: center; padding: 5px 14px 8px; border-top: 0.5px solid rgba(0,0,0,0.07); }
+  .result-id { font-size: 11px; font-family: 'Menlo', 'Monaco', 'Courier New', monospace; color: #aaa; }
+  .copied-badge { font-size: 11px; color: #888780; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+
+  /* GAS設定カード */
+  .gas-card { background: #fff; border-radius: 12px; border: 0.5px solid rgba(0,0,0,0.1); padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+  .gas-card-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .gas-card-header .gas-title { font-size: 13px; color: #5f5e5a; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+  .gas-card-header .gas-title .dot { width: 7px; height: 7px; border-radius: 50%; background: #ccc; flex-shrink: 0; transition: background 0.2s; }
+  .gas-card-header .gas-title .dot.connected { background: #4caf50; }
+  .gas-card-header .toggle-text { font-size: 12px; color: #aaa; }
+  .gas-body { margin-top: 1rem; display: none; }
+  .gas-body.open { display: block; }
+  .gas-row { display: flex; gap: 8px; }
+  .gas-row input { flex: 1; }
+  .gas-save-btn { height: 38px; padding: 0 16px; background: #1a1a18; color: #fff; border: none; border-radius: 8px; font-size: 13px; font-family: inherit; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
+  .gas-save-btn:hover { opacity: 0.8; }
+  .gas-note { font-size: 11px; color: #aaa; margin-top: 8px; line-height: 1.6; }
+  .gas-status { font-size: 12px; margin-top: 10px; padding: 8px 12px; border-radius: 8px; display: none; }
+  .gas-status.ok { background: #f0f9f0; color: #2e7d32; border: 0.5px solid #c8e6c9; }
+  .gas-status.err { background: #fff3f3; color: #c62828; border: 0.5px solid #ffcdd2; }
+  .gas-status.loading { background: #f5f4f0; color: #888780; border: 0.5px solid rgba(0,0,0,0.1); }
+
+  /* 記録ステータスバナー */
+  .record-banner { font-size: 12px; margin-top: 10px; padding: 8px 12px; border-radius: 8px; display: none; }
+  .record-banner.ok { background: #f0f9f0; color: #2e7d32; border: 0.5px solid #c8e6c9; }
+  .record-banner.err { background: #fff3f3; color: #c62828; border: 0.5px solid #ffcdd2; }
+  .record-banner.loading { background: #f5f4f0; color: #888780; border: 0.5px solid rgba(0,0,0,0.1); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>UTMリンク生成ツール</h1>
+    <p>配信日とURLを入力して、トラッキングリンクを一括生成します</p>
+  </header>
+
+  <!-- GAS設定カード -->
+  <div class="gas-card">
+    <div class="gas-card-header" onclick="toggleGasBody()">
+      <span class="gas-title">
+        <span class="dot" id="connDot"></span>
+        スプレッドシート連携（GAS URL）
+      </span>
+      <span class="toggle-text" id="gasToggleText">設定する ▾</span>
+    </div>
+    <div class="gas-body" id="gasBody">
+      <div class="gas-row">
+        <input type="text" id="gasUrl" placeholder="https://script.google.com/macros/s/..." />
+        <button class="gas-save-btn" onclick="saveGasUrl()">保存・確認</button>
+      </div>
+      <p class="gas-note">
+        GAS の Web アプリ URL を貼り付けてください。<br>
+        設定方法: スプレッドシート → 拡張機能 → Apps Script → デプロイ → 新しいデプロイ<br>
+        種類: ウェブアプリ ／ アクセス: 全員
+      </p>
+      <div class="gas-status" id="gasStatus"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row3">
+      <div>
+        <label>作成者名 <span style="color:#e57373;font-size:11px;">必須</span></label>
+        <input type="text" id="authorName" placeholder="例：山田 太郎" oninput="saveAuthor()" />
+      </div>
+      <div>
+        <label>配信チャネル（utm_source）</label>
+        <div class="toggle-group" style="margin-top:2px;">
+          <button class="tog-btn active" id="btn-klaviyo" onclick="selectSource('klaviyo')">Klaviyo</button>
+          <button class="tog-btn" id="btn-line" onclick="selectSource('line')">LINE</button>
+        </div>
+      </div>
+      <div>
+        <label>配信日</label>
+        <input type="date" id="sendDate" onchange="updatePreview()" />
+      </div>
+    </div>
+
+    <div class="suffix-section">
+      <p class="sublabel">utm_medium のサフィックス</p>
+      <div class="toggle-group" id="suffixGroup"></div>
+    </div>
+
+    <div class="preview-box" id="previewBox">…</div>
+  </div>
+
+  <div class="card">
+    <p class="section-label">変換するURL（複数可 — それぞれ異なるIDが付与されます）</p>
+    <div id="urlList"></div>
+    <button class="add-btn" onclick="addRow()">+ URLを追加</button>
+  </div>
+
+  <button class="gen-btn" id="genBtn" onclick="generate()">URLを一括生成</button>
+
+  <div class="result-area" id="resultArea">
+    <div class="divider"></div>
+    <div class="result-header">
+      <span id="resultCount"></span>
+      <button class="copy-all-btn" onclick="copyAll()">すべてコピー</button>
+    </div>
+    <div class="result-list" id="resultList"></div>
+    <div class="record-banner" id="recordBanner"></div>
+  </div>
+</div>
+
+<script>
+const SUFFIXES = {
+  klaviyo: [
+    { label: 'なし', value: '' },
+    { label: '_flow', value: '_flow' },
+    { label: '_membership', value: '_membership' },
+  ],
+  line: [
+    { label: 'なし', value: '' },
+    { label: '_flow', value: '_flow' },
+    { label: '_membership', value: '_membership' },
+    { label: '_richmenu', value: '_richmenu' },
+    { label: '_profile', value: '_profile' },
+  ]
+};
+
+const GAS_URL_KEY = 'kurand_gas_url';
+const AUTHOR_KEY  = 'kurand_author_name';
+let currentSource = 'klaviyo';
+let currentSuffix = '';
+let usedIds = new Set();
+let lastResults = [];
+
+// ---- 作成者名 ----
+function loadAuthor() {
+  const saved = localStorage.getItem(AUTHOR_KEY) || '';
+  document.getElementById('authorName').value = saved;
+}
+function saveAuthor() {
+  const val = document.getElementById('authorName').value.trim();
+  localStorage.setItem(AUTHOR_KEY, val);
+  document.getElementById('authorName').classList.toggle('empty-warn', false);
+}
+function getAuthor() {
+  return document.getElementById('authorName').value.trim();
+}
+
+// ---- GAS URL 管理 ----
+function loadGasUrl() {
+  const url = localStorage.getItem(GAS_URL_KEY) || '';
+  document.getElementById('gasUrl').value = url;
+  updateConnDot(!!url);
+  if (url) {
+    document.getElementById('gasToggleText').textContent = '変更する ▾';
+  }
+}
+
+function saveGasUrl() {
+  const url = document.getElementById('gasUrl').value.trim();
+  if (!url) {
+    showGasStatus('err', 'URLを入力してください');
+    return;
+  }
+  if (!url.startsWith('https://script.google.com/')) {
+    showGasStatus('err', 'GASのウェブアプリURLを入力してください（https://script.google.com/...）');
+    return;
+  }
+  showGasStatus('loading', '接続を確認中...');
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      if (data.status === 'ok') {
+        localStorage.setItem(GAS_URL_KEY, url);
+        updateConnDot(true);
+        showGasStatus('ok', '✓ 接続できました。スプレッドシートへの記録が有効になりました。');
+        document.getElementById('gasToggleText').textContent = '変更する ▾';
+      } else {
+        showGasStatus('err', 'エラー: ' + (data.message || '不明なエラー'));
+      }
+    })
+    .catch(() => {
+      showGasStatus('err', '接続できませんでした。URLとデプロイ設定を確認してください。');
+    });
+}
+
+function showGasStatus(type, msg) {
+  const el = document.getElementById('gasStatus');
+  el.className = 'gas-status ' + type;
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function updateConnDot(connected) {
+  const dot = document.getElementById('connDot');
+  dot.className = 'dot' + (connected ? ' connected' : '');
+}
+
+function toggleGasBody() {
+  const body = document.getElementById('gasBody');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (!isOpen) {
+    const url = localStorage.getItem(GAS_URL_KEY) || '';
+    document.getElementById('gasToggleText').textContent = url ? '閉じる ▴' : '設定する ▴';
+  } else {
+    const url = localStorage.getItem(GAS_URL_KEY) || '';
+    document.getElementById('gasToggleText').textContent = url ? '変更する ▾' : '設定する ▾';
+  }
+}
+
+// ---- 生成ロジック ----
+function selectSource(src) {
+  currentSource = src;
+  document.getElementById('btn-klaviyo').className = 'tog-btn' + (src === 'klaviyo' ? ' active' : '');
+  document.getElementById('btn-line').className = 'tog-btn' + (src === 'line' ? ' active' : '');
+  currentSuffix = '';
+  renderSuffixes();
+  updatePreview();
+}
+
+function renderSuffixes() {
+  const group = document.getElementById('suffixGroup');
+  group.innerHTML = '';
+  SUFFIXES[currentSource].forEach(({ label, value }) => {
+    const btn = document.createElement('button');
+    btn.className = 'tog-btn' + (value === currentSuffix ? ' active' : '');
+    btn.textContent = label;
+    btn.onclick = () => selectSuffix(value);
+    group.appendChild(btn);
+  });
+}
+
+function selectSuffix(val) {
+  currentSuffix = val;
+  renderSuffixes();
+  updatePreview();
+}
+
+function genUniqueId() {
+  let id, tries = 0;
+  do {
+    const t = Date.now() % 100000;
+    const r = Math.floor(Math.random() * 90000) + 10000;
+    id = String((t * 31 + r) % 100000).padStart(5, '0');
+    tries++;
+  } while (usedIds.has(id) && tries < 200);
+  usedIds.add(id);
+  return id;
+}
+
+function getMMDD(dateStr) {
+  if (!dateStr) return null;
+  const [, m, d] = dateStr.split('-');
+  return m + d;
+}
+
+function getPathSlug(url) {
+  try {
+    const u = new URL(url.startsWith('http') ? url : 'https://' + url);
+    const parts = u.pathname.replace(/\/$/, '').split('/').filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : 'top';
+  } catch {
+    const clean = url.split('?')[0].replace(/\/$/, '');
+    const parts = clean.split('/').filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : 'top';
+  }
+}
+
+function buildUTMUrl(rawUrl, mmdd, campaignId) {
+  let base = rawUrl.trim();
+  if (!base) return null;
+  if (!base.startsWith('http')) base = 'https://' + base;
+  try {
+    const u = new URL(base);
+    const slug = getPathSlug(base);
+    ['utm_source','utm_medium','utm_campaign','utm_content','openExternalBrowser'].forEach(k => u.searchParams.delete(k));
+    u.searchParams.append('utm_source', currentSource);
+    u.searchParams.append('utm_medium', 'ec_' + slug + '_' + mmdd + currentSuffix);
+    u.searchParams.append('utm_campaign', campaignId);
+    if (currentSource === 'line') {
+      u.searchParams.append('openExternalBrowser', '1');
+    }
+    return u.toString();
+  } catch { return null; }
+}
+
+function updatePreview() {
+  const mmdd = getMMDD(document.getElementById('sendDate').value);
+  const mmddStr = mmdd || 'MMDD';
+  const medium = 'ec_パス末尾_' + mmddStr + currentSuffix;
+  const isLine = currentSource === 'line';
+  const tail = isLine ? '&amp;<span class="pv">openExternalBrowser=1</span>' : '';
+  document.getElementById('previewBox').innerHTML =
+    '<span style="opacity:.4">ベースURL</span>?utm_source=<span class="pv">' + currentSource +
+    '</span>&amp;utm_medium=<span class="pv">' + medium +
+    '</span>&amp;utm_campaign=<span class="pv">XXXXX</span>' + tail;
+}
+
+function addRow(val = '') {
+  const list = document.getElementById('urlList');
+  const row = document.createElement('div');
+  row.className = 'url-row';
+  const safe = val.replace(/"/g, '&quot;');
+  row.innerHTML = `<input type="text" placeholder="https://kurand.jp/products/cask-1046" value="${safe}" /><button class="del-btn" onclick="removeRow(this)">×</button>`;
+  list.appendChild(row);
+}
+
+function removeRow(btn) {
+  const list = document.getElementById('urlList');
+  if (list.children.length > 1) btn.parentElement.remove();
+}
+
+function generate() {
+  const author = getAuthor();
+  if (!author) {
+    document.getElementById('authorName').classList.add('empty-warn');
+    document.getElementById('authorName').focus();
+    alert('作成者名を入力してください');
+    return;
+  }
+
+  const dateVal = document.getElementById('sendDate').value;
+  const mmdd = getMMDD(dateVal);
+  if (!mmdd) { alert('配信日を入力してください'); return; }
+
+  const rows = document.querySelectorAll('#urlList .url-row input');
+  const results = [];
+  usedIds.clear();
+
+  rows.forEach(r => {
+    const url = r.value.trim();
+    if (!url) return;
+    const id = genUniqueId();
+    const built = buildUTMUrl(url, mmdd, id);
+    if (built) results.push({ url: built, id });
+  });
+
+  if (!results.length) { alert('URLを1件以上入力してください'); return; }
+
+  lastResults = results.map(r => ({
+    author,
+    sendDate: dateVal,
+    source: currentSource,
+    medium: (() => {
+      try { return new URL(r.url).searchParams.get('utm_medium'); } catch { return ''; }
+    })(),
+    campaign: r.id,
+    url: r.url
+  }));
+
+  const area = document.getElementById('resultArea');
+  const list = document.getElementById('resultList');
+  const srcLabel = currentSource === 'line' ? 'LINE' : 'Klaviyo';
+  const sfxLabel = currentSuffix || 'なし';
+  document.getElementById('resultCount').textContent = results.length + '件生成（' + srcLabel + ' / ' + sfxLabel + ' / ' + author + '）';
+  list.innerHTML = '';
+
+  results.forEach(({ url, id }) => {
+    const item = document.createElement('div');
+    item.className = 'result-item';
+    item.innerHTML = `
+      <div class="result-url">${url}</div>
+      <div class="result-meta">
+        <span class="result-id">utm_source: ${currentSource} &nbsp;|&nbsp; utm_campaign: ${id}</span>
+        <span class="copied-badge">コピー済み</span>
+      </div>`;
+    item.onclick = () => {
+      navigator.clipboard.writeText(url).then(() => {
+        const badge = item.querySelector('.copied-badge');
+        badge.style.opacity = '1';
+        setTimeout(() => badge.style.opacity = '0', 1200);
+      });
+    };
+    list.appendChild(item);
+  });
+
+  area.style.display = 'block';
+  area.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  // スプレッドシートへ記録
+  recordToSheet(lastResults);
+}
+
+function recordToSheet(rows) {
+  const gasUrl = localStorage.getItem(GAS_URL_KEY);
+  const banner = document.getElementById('recordBanner');
+
+  if (!gasUrl) {
+    // GAS未設定時は静かにスキップ（バナー非表示）
+    return;
+  }
+
+  banner.className = 'record-banner loading';
+  banner.textContent = 'スプレッドシートに記録中...';
+  banner.style.display = 'block';
+
+  // GASはブラウザからのPOSTをCORSリダイレクトでブロックするため
+  // no-cors の GET リクエストにデータを乗せる方式を使用
+  const encoded = encodeURIComponent(JSON.stringify({ rows }));
+  fetch(gasUrl + '?data=' + encoded, { method: 'GET', mode: 'no-cors' })
+    .then(() => {
+      // no-corsではレスポンス本文は読めないがリクエスト自体は成功
+      banner.className = 'record-banner ok';
+      banner.textContent = '✓ ' + rows.length + '件をスプレッドシートに記録しました';
+    })
+    .catch(() => {
+      banner.className = 'record-banner err';
+      banner.textContent = '記録に失敗しました。GAS URLやデプロイ設定を確認してください。';
+    });
+}
+
+function copyAll() {
+  const items = document.querySelectorAll('#resultList .result-item');
+  const text = Array.from(items).map(el => el.querySelector('.result-url').textContent.trim()).join('\n');
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-all-btn');
+    btn.textContent = 'コピーしました';
+    setTimeout(() => btn.textContent = 'すべてコピー', 1500);
+  });
+}
+
+for (let i = 0; i < 3; i++) addRow();
+renderSuffixes();
+updatePreview();
+loadGasUrl();
+loadAuthor();
+</script>
+</body>
+</html>
