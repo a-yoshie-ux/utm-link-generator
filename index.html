@@ -210,22 +210,11 @@ function saveGasUrl() {
     showGasStatus('err', 'GASのウェブアプリURLを入力してください（https://script.google.com/...）');
     return;
   }
-  showGasStatus('loading', '接続を確認中...');
-  fetch(url)
-    .then(r => r.json())
-    .then(data => {
-      if (data.status === 'ok') {
-        localStorage.setItem(GAS_URL_KEY, url);
-        updateConnDot(true);
-        showGasStatus('ok', '✓ 接続できました。スプレッドシートへの記録が有効になりました。');
-        document.getElementById('gasToggleText').textContent = '変更する ▾';
-      } else {
-        showGasStatus('err', 'エラー: ' + (data.message || '不明なエラー'));
-      }
-    })
-    .catch(() => {
-      showGasStatus('err', '接続できませんでした。URLとデプロイ設定を確認してください。');
-    });
+  // no-corsではレスポンスを読めないため、URLの形式が正しければ保存して有効化する
+  localStorage.setItem(GAS_URL_KEY, url);
+  updateConnDot(true);
+  showGasStatus('ok', '✓ URLを保存しました。スプレッドシートへの記録が有効になりました。');
+  document.getElementById('gasToggleText').textContent = '変更する ▾';
 }
 
 function showGasStatus(type, msg) {
